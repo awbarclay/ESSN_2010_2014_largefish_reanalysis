@@ -1,0 +1,129 @@
+---
+title: "ESSN_2010_2014_largefish_reanalysis"
+author: "Andy Barclay"
+date: "February 28, 2019"
+output: html_document
+---
+
+This R Markdown documents the reanalysis of the 2010, 2011, 2013, and 2014 East Side set gillnet mixtures to produce stock compostion and stock-specific harvest estimates by large (>=750mm) and small (<750mm) fish.  The original results of these mixtures were reported in [Eskelin et al. (2013)](http://www.adfg.alaska.gov/FedAidPDFs/FDS13-63.pdf) for 2010, 2011, and 2013 and in [Eskelin and Barclay (2015)](http://www.adfg.alaska.gov/FedAidPDFs/FDS15-19.pdf) fpr 2014. No analysis was conduced for the 2012 ESSN fishery due to very low harvest numbers and insufficient harvest samples for analyis (185 samples collected). Here, I am using the original BAYES mixture and baseline files, but reruning BAYES with control files that have thining settings of 100 for the reporting group (RGN) and individual (CLS) output.  That way the new results will be nearly identical to the old reported results.  
+One thing to note is that the 2010-2013 mixtures were analyzed using an unpublish baseline (42 pops and 39 loci), which was a precursor to the [Barclay and Habicht (2015)](http://www.adfg.alaska.gov/FedAidPDFs/FMS15-01.pdf) baseline (54 pops and 39 loci), and the 2014 mixtures were analyzed using the Barclay and Habicht (2015) baseline.
+
+##Set up workspace
+###Get functions and load tidy packages
+```{r workspace setup, echo=FALSE}
+
+source("C:\\Users\\awbarclay\\Documents\\R\\GitHubCloneFunctions.R")#GCL functions
+source("V:\\Analysis\\Staff\\Andy Barclay\\R\\New Functions\\WorkspaceFolders.GCL.R")#A function I wrote
+
+library("tidyverse")
+
+```
+
+###Create output folders 
+```{r create folders, echo=TRUE, message=FALSE}
+
+#WorkspaceFolders.GCL(Folders=c("output","bayes","objects"),Subfolders=list(bayes=c("baseline","mixture","control","output")),wd=getwd())
+
+```
+###Create locus control and get genotype data
+```{r locus control, echo=TRUE}
+
+#CreateLocusControl.GCL(markersuite = "Chinook_NCI_39SNPs", username ="awbarclay", password = password)#Locus control
+
+#LOKI2R.GCL(sillyvec=c("KEASTSC10","KEASTSC11","KEASTSC13","KEASTSC14"),username="awbarclay",password)#Pull Data from LOKI
+
+#save.image("V:/Analysis/2_Central/Chinook/Cook Inlet/2014/Mixture/ESSN_2010_2014_largefish_reanalysis/ESSN_2010_2014_largefish_reanalysis.Rdata")
+
+load("V:/Analysis/2_Central/Chinook/Cook Inlet/2014/Mixture/ESSN_2010_2014_largefish_reanalysis/ESSN_2010_2014_largefish_reanalysis.Rdata")
+
+```
+
+###Create vectors of original mixture names for each year.  
+These will get changed to more meaningful names after summarizing the data.
+Insufficent samples were collected to stratify the 2010 and 2011 samples, so they only have one mixture representing the entire fishery for each season. It appears there were sufficient samples, in all but one stratum, to analyze 4 mixtures for 2010 and 3 of the 4 mixtures for 2011. After talking to Tony Eskelin, I will produce estimates the stratified estimates for 2010 and 2011 but only for internal use. The 2013 samples were subsampled to form 4 statiotemporal mixtures, and as stratified estimate was produded to represent the entire season. 
+
+```{r old mixvecs}
+
+mixtures10 <-c(All_Jun27toAug12_10="KEASTSC10",Kasilof_preJul8_10="S1.10",Kasilof_Jul8to31_10="S2.10",KenaiEF_Jul8to31_10="S3.10",All_August_10="S4.10")
+
+mixtures11 <-c(All_Jun25toAug7_11="KEASTSC11",Kasilof_preJul8_11="S1.11",Kasilof_Jul8to31_11="S2.11",KenaiEF_Jul8to31_11="S3.11",All_August_11="S4.11")
+
+mixtures13 <-c(Kasilof_Jun27toJul6_13="Kas_Jun27toJul6",KenaiEF_Jul8to23_13="KenEF_Jul8to23",Kasilof_Jul8to23_13="Kas_Jul8to23",KRSHA_Jul17toAug2_13="KRSHA_Jul17toAug2")
+
+mixtures14 <-c(Kasilof_Jun23toJul7_14="KasilofEarly",Kasilof_Jul9to23_14="KasilofLate",KRSHA_Jul16toAug2_14="KasilofTerminal",KenaiEF_Jul9to23_14="KenaiLate",All_Aug2to6_14="AugustAll")
+
+oldmixvec <-c(mixtures10,mixtures11,mixtures13,mixtures14)
+
+```
+
+###Check mixture sample sizes
+These sample sized match the sample sizes for the mixtures included in the reports. The sample sizes also look good the 2010 and 2011 stratum mixtures that were not included in the reports.
+```{r mixture sample sizes}
+
+dir="bayes/output"
+
+MixN <- sapply(oldmixvec,function(mix){
+  
+  file=paste0(dir,"/",mix,"/",mix,".mix")
+  
+  read_table(file,col_names=FALSE) %>% nrow()
+  
+}) %>% bind_rows() 
+
+MixN
+
+```
+###Get fish IDs from original analysis workspaces
+```{r 2010 and 2011}
+
+attach("V:/Analysis/2_Central/Chinook/Cook Inlet/2013/Mixture/2013 ESSN Chinook Postseason/ESSN2010and2011Analysis.RData")
+
+
+for (mix in mixtures10){
+  
+  assign(x=mix,value=get(mix))
+  
+}
+
+for (mix in mixtures11){
+  
+  assign(x=mix,value=get(mix))
+  
+}
+
+detach()
+```
+```{r 2013}
+
+attach("V:/Analysis/2_Central/Chinook/Cook Inlet/2013/Mixture/2013 ESSN Chinook Postseason/ESSN2013PostseasonAnalysis.RData")
+
+
+for (mix in mixtures13){
+  
+  assign(x=mix,value=get(mix))
+  
+}
+
+detach()
+```
+```{r 2014}
+
+attach("V:/Analysis/2_Central/Chinook/Cook Inlet/2014/Mixture/2014 ESSN Chinook postseason analysis/ESSN2014PostseasonAnalysis.RData")
+
+
+for (mix in mixtures14){
+  
+  assign(x=mix,value=get(mix))
+  
+}
+
+detach()
+```
+
+##Reanlayze mixtures in BAYES
+Instead of reiventing the wheel, I coppied the BAYES input files from [V:\Analysis\2_Central\Chinook\Cook Inlet\2013\Mixture\2013 ESSN Chinook Postseason\BAYES\Output](V:\Analysis\2_Central\Chinook\Cook Inlet\2013\Mixture\2013 ESSN Chinook Postseason\BAYES\Output) for 2010-2013 and [V:\Analysis\2_Central\Chinook\Cook Inlet\2014\Mixture\2014 ESSN Chinook postseason analysis\BAYES\Output](V:\Analysis\2_Central\Chinook\Cook Inlet\2014\Mixture\2014 ESSN Chinook postseason analysis\BAYES\Output) for 2014. The only thing that I changed in the BAYES control files was the thinning interval for the reporting group (.RGN) output from 1 to 100, the individual assignment (.CLS) thinning interval was already set to 100.  
+###Read in estimate distributions and burn the first 20,000 iteration from each chain.
+```{r read in BAYES estimates}
+
+```
+
